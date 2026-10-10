@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.en.md) · [首页 / Home](../README.md)
 
-让 Aura 的模型列表可以选择 **Codex**，通过已有 Codex 登录调用 **GPT-6.1 Sol 或 GPT-6 Astra**，并在 Codex 中查看真实 Aura 对话。输入框底部可选择模型和思考强度，默认 Sol / Ultra。插件还提供 MCP 自检、权限诊断和 Unreal Engine 操作规范。
+让 Aura 的模型列表可以选择 **Codex**，通过已有 Codex 登录调用 **GPT-6.1 Sol 或 GPT-6 Astra**，并在 Codex 中查看真实 Aura 对话。输入框底部可选择模型、五档思考强度和独立的 Fast 开关，默认 Sol / Ultra / Fast 关闭。插件还提供 MCP 自检、权限诊断和 Unreal Engine 操作规范。
 
 ![Codex-Aura 中文架构图](../codex-aura/assets/architecture.zh-CN.svg)
 
@@ -11,6 +11,7 @@
 ## 功能
 
 - 在 Aura 模型菜单的 DeepSeek Harness 旁增加 Codex。
+- 在输入框底部切换 GPT-6.1 Sol / GPT-6 Astra、五档思考强度和独立的 Fast 模式；下一条消息生效，支持同一对话内切换。
 - 使用公开 app-server 协议保存实际用户消息、助手回复和工具活动，继续已有原生对话。
 - 在 Codex 的 `UE5_Aura` 分组下按 Project 整理真实对话。
 - 提供 6 个只读 MCP 工具和 3 个技能，便于诊断连接、说明权限及读取蓝图结构。
@@ -60,6 +61,24 @@ node .\codex-aura\scripts\install.mjs --config .\config.local.json --backup-root
 
 ## 使用
 
+### 在 Aura 中选择模型和思考强度
+
+1. 在 Aura 模型菜单选择 **Codex**。
+2. 点击输入框底部显示模型和思考强度的按钮，打开设置弹窗。
+3. 选择模型，拖动思考强度滑条；需要 Fast 时点击闪电按钮。
+4. 发送下一条消息，使用刚刚选择的设置。已有对话的续聊也会使用新的选择。
+
+| 设置 | 可选项与行为 |
+| --- | --- |
+| 模型 | **GPT-6.1 Sol** 或 **GPT-6 Astra**，默认 Sol。 |
+| 思考强度 | **Low、Medium、High、Extra High、Ultra** 五档，默认 Ultra。 |
+| Fast | 闪电按钮独立开关，默认关闭；开启后显示实心闪电，提示中的 `More usage` 表示更多用量。 |
+| Reset | 只将思考强度恢复为 **Ultra**，保留当前模型和 Fast 设置。 |
+
+选择会在本机保存，并在下一次发送时生效。兼容旧版界面保存的 Max：升级后显示为 Ultra；桥接仍接受显式 `max` 请求。旧请求没有携带选择时，默认使用 Sol / Ultra / Fast 关闭。插件配置中的模型字段不会覆盖输入框选择。Codex CLI 使用自己的已有登录状态，本项目不读取或复制 `auth.json`。
+
+### 在 Codex 中使用插件
+
 在 Codex 中可以直接请求：
 
 - “检查 Aura MCP 和权限。”
@@ -76,7 +95,7 @@ node .\codex-aura\scripts\install.mjs --config .\config.local.json --backup-root
 | `aura_get_blueprint_meta` | 校验参数和对象路径后，读取安全的蓝图结构声明。 |
 | `aura_get_blueprint_graph` | 先校验安全 metadata 的资产类型与路径，再读取节点、引脚和连线。 |
 
-三个技能为 `aura-diagnostics`、`unreal-workflow`、`aura-conversations`。选择 Codex 后，输入框底部用一个按钮显示模型和思考强度；打开后弹窗相对按钮居中，按钮文字显示 `Select effort`。弹窗中的模型行只提供 GPT-6.1 Sol 和 GPT-6 Astra；紧凑的思考强度滑条提供 Low、Medium、High、Extra High、Ultra 五档，与 Codex 界面刻度对应。拖动时标题、滑块及填充区域实时同步，Ultra 使用紫色渐变。闪电按钮独立切换真正的 Fast 模式，实心图标及底部闪电会反映开启状态，提示显示 `Fast mode` / `More usage`；[官方速度说明](https://learn.chatgpt.com/docs/agent-configuration/speed)没有为 Sol 或 Astra 标注固定速度倍率。选择会在本机保存，并在下一次发送时生效，包括同一对话内切换。重置按钮恢复 Ultra，保留模型及 Fast 选择；旧版界面保存的 Max 值显示为 Ultra，桥接仍兼容显式 `max` 请求。未携带选择的旧请求仍默认 `gpt-6.1-sol` / `ultra`，Fast 关闭；修改插件配置中的模型字段不会覆盖输入框选择。Codex CLI 使用自己的已有登录状态，本项目不读取或复制 `auth.json`。
+三个技能为 `aura-diagnostics`、`unreal-workflow`、`aura-conversations`。
 
 ## 真实对话与 Project 分类
 
@@ -128,10 +147,12 @@ node .\codex-aura\scripts\install.mjs --restore 'C:\Backups\Codex-Aura\Codex-Aur
 代码使用 Node.js 内置模块，不需要 `npm install`。在仓库根目录运行以下离线回归测试；测试使用隔离的假路由、MCP 和 app-server，不调用真实模型或修改 UE 资产：
 
 ```powershell
-node --test .\codex-model\apply-codex-model.test.cjs .\codex-model\tests\AuraCodexBridge.test.mjs .\codex-model\tests\BlueprintReadProxy.test.mjs .\codex-aura\tests\app-server.test.mjs .\codex-aura\tests\config-diagnostics.test.mjs .\codex-aura\tests\mcp-server.test.mjs .\codex-aura\tests\install.test.mjs .\codex-aura\tests\conversation-project.test.mjs
+node --test .\codex-model\apply-codex-model.test.cjs .\codex-model\codex-settings-ui.test.cjs .\codex-model\tests\AuraCodexBridge.test.mjs .\codex-model\tests\BlueprintReadProxy.test.mjs .\codex-aura\tests\app-server.test.mjs .\codex-aura\tests\config-diagnostics.test.mjs .\codex-aura\tests\mcp-server.test.mjs .\codex-aura\tests\install.test.mjs .\codex-aura\tests\conversation-project.test.mjs
 ```
 
-0.1.5 本机修复版本实测 **181 项通过、0 项失败**，覆盖安装 / 恢复、权限边界、蓝图 guard、首轮懒落盘、保存回执、原生对话、Project 关联、同步期限、异常处理和拥有的子进程清理。公开版补充默认路径和空配置边界回归后，**185 项通过、0 项失败**。实时验证另行确认了 3 个技能和 6 个 MCP 工具加载，以及真实对话保存及归属；它与纯诊断“不启动推理”的承诺分开记录。也可以在仓库根目录直接运行 `npm test`，查看仓库 CI 验证结果。
+截至 **2026-10-10**，当前 `main` 离线回归测试 **216 项通过、0 项失败**，覆盖模型 / 思考强度 / Fast 选择与持久化、同一对话内切换、安装 / 恢复、权限边界、蓝图 guard、首轮懒落盘、保存回执、原生对话、Project 关联、同步期限、异常处理和拥有的子进程清理。也可以在仓库根目录直接运行 `npm test`，查看仓库 CI 验证结果。
+
+0.1.5 保存修复阶段的历史实时验证另行确认了 3 个技能和 6 个 MCP 工具加载，以及新对话和第二轮续聊的真实保存及归属；它与离线测试、纯诊断“不启动推理”的承诺分开记录。
 
 主要目录：
 

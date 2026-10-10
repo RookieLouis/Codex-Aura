@@ -10,11 +10,25 @@ Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-
 
 ![Codex-Aura architecture](codex-aura/assets/architecture.svg)
 
-### 0.1.5
+### Latest update · 2026-10-10
+
+Choose the model, reasoning effort, and Fast mode directly in Aura's composer:
+
+| Setting | Available choices | Default |
+| --- | --- | --- |
+| Model | GPT-6.1 Sol / GPT-6 Astra | GPT-6.1 Sol |
+| Reasoning effort | Low / Medium / High / Extra High / Ultra | Ultra |
+| Fast mode | Independent lightning toggle; a filled icon indicates On | Off |
+
+Select **Codex** in Aura's model menu, then click the model / effort button below the message box. Choose a model, drag the effort slider, and use the lightning button to toggle Fast. Selections are saved locally and apply to the next message, including in an existing conversation. Reset restores **Ultra** while keeping the selected model and Fast setting. The Fast tooltip shows `Fast mode` / `More usage`.
+
+The current source passed **all 216 regression tests** on 2026-10-10, including per-turn settings on new and continued conversations, UI state, and installation / restoration. Existing installations can use the [quick-start commands](#quick-start) below to install the new controls, then reload the router and refresh Aura.
+
+### Save fix in 0.1.5
 
 Fixes **“This chat could not be saved”** on a new conversation. A fresh Codex thread may have no persisted rollout before its first turn. The bridge now records the actual thread identity and completes generation before optional Project/workspace/title synchronization. That synchronization shares one five-second deadline, and errors preserve the completed answer. Cloud save receipts must still pass validation before a turn is reported as committed.
 
-Live verification confirmed both a new conversation and a continuation were saved and could be read back. The local save-fix suite passed **181 tests**; the public version adds configuration and path-boundary coverage and passed **all 185 tests**.
+The 0.1.5 live verification confirmed both a new conversation and a continuation were saved and could be read back.
 
 ### Requirements
 
@@ -64,11 +78,25 @@ npm test
 
 ![Codex-Aura 中文架构图](codex-aura/assets/architecture.zh-CN.svg)
 
-### 0.1.5
+### 最新更新 · 2026-10-10
+
+在 Aura 输入框底部直接选择模型、思考强度和 Fast 模式：
+
+| 设置 | 可选项 | 默认值 |
+| --- | --- | --- |
+| 模型 | GPT-6.1 Sol / GPT-6 Astra | GPT-6.1 Sol |
+| 思考强度 | Low / Medium / High / Extra High / Ultra | Ultra |
+| Fast 模式 | 闪电按钮独立开关，实心图标表示已开启 | 关闭 |
+
+先在 Aura 模型菜单选择 **Codex**，再点击输入框底部的模型 / 思考强度按钮。弹窗内可切换模型、拖动思考强度滑条、点击闪电切换 Fast。选择保存在本机，并在下一条消息生效；已有对话续聊也能切换。重置按钮只恢复 **Ultra**，保留模型和 Fast 选择。Fast 提示显示 `Fast mode` / `More usage`。
+
+当前源码于 2026-10-10 完成回归，**216 项全部通过**，覆盖新对话及续聊的每轮参数、界面状态和安装 / 恢复。已有安装可重新执行下方[快速开始](#快速开始)中的预览及安装命令，再重新加载路由并刷新 Aura，以安装新增控件。
+
+### 0.1.5 对话保存修复
 
 修复新对话提示 **“This chat could not be saved”** 的问题。新 Codex 线程在首轮生成前可能尚未落盘；现在先保存真实线程标识并完成生成，再关联 Project、同步工作区和标题。可选同步共用 5 秒期限，失败时保留回答。云端保存回执仍必须校验成功，不能把失败当成已保存。
 
-本机完成了新对话及第二轮续聊的实际保存、读回验证。本机修复版本回归 **181 项通过、0 项失败**；公开版本补充默认路径和配置边界测试后，**185 项全部通过**。
+0.1.5 发布时已完成新对话及第二轮续聊的实际保存、读回验证。
 
 ### 安装前提
 

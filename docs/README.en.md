@@ -2,13 +2,14 @@
 
 [简体中文](README.zh-CN.md) · **English** · [首页 / Bilingual overview](../README.md)
 
-Select **Codex** from Aura's model menu, use your existing Codex sign-in to run **GPT-6.1 Sol or GPT-6 Astra**, and view real Aura conversations in Codex. Select the model and reasoning effort in the composer; the default is Sol / Ultra. The plugin also provides MCP self-checks, permission diagnostics, and an Unreal Engine workflow.
+Select **Codex** from Aura's model menu, use your existing Codex sign-in to run **GPT-6.1 Sol or GPT-6 Astra**, and view real Aura conversations in Codex. The composer offers model selection, five reasoning effort levels, and an independent Fast switch; the default is Sol / Ultra / Fast off. The plugin also provides MCP self-checks, permission diagnostics, and an Unreal Engine workflow.
 
 Current version: **0.1.5**. Verified on **Windows, Aura 1.0.6, and Node.js 24.14.1**. Earlier native protocol verification used Codex CLI 0.159.2; plugin loading and the two-turn save verification for 0.1.5 used 0.159.0-alpha.12.1. Other versions may change UI resources or protocols. The installer checks known patch locations and stops if they do not match.
 
 ## Features
 
 - Adds Codex beside DeepSeek Harness in Aura's model menu.
+- Switches between GPT-6.1 Sol / GPT-6 Astra, five reasoning effort levels, and independent Fast mode in the composer. Changes apply to the next message, including within the same conversation.
 - Uses the public app-server protocol to store real user messages, assistant replies, and tool activity, and to continue existing native conversations.
 - Organizes real conversations by Project under the `UE5_Aura` section in Codex.
 - Provides 6 read-only MCP tools and 3 skills for connection diagnostics, permission explanations, and Blueprint structure reads.
@@ -58,6 +59,24 @@ The currently compatible entry points are `.codex-plugin/plugin.json` and `.mcp.
 
 ## Usage
 
+### Select a model and reasoning effort in Aura
+
+1. Select **Codex** from Aura's model menu.
+2. Click the button showing the model and effort at the bottom of the composer to open settings.
+3. Select a model and drag the reasoning effort slider. Click the lightning button to enable Fast when needed.
+4. Send the next message to use the selected settings. Continuing an existing conversation also uses the new selection.
+
+| Setting | Options and behavior |
+| --- | --- |
+| Model | **GPT-6.1 Sol** or **GPT-6 Astra**; defaults to Sol. |
+| Reasoning effort | Five levels: **Low, Medium, High, Extra High, Ultra**; defaults to Ultra. |
+| Fast | Independent lightning-button switch, off by default. A filled lightning icon indicates it is on; the `More usage` tooltip indicates higher usage. |
+| Reset | Restores only reasoning effort to **Ultra**, preserving the model and Fast setting. |
+
+Selections are saved locally and take effect on the next message. For compatibility, a Max value saved by the previous UI displays as Ultra after upgrading; the bridge still accepts explicit `max` requests. Legacy requests without selections default to Sol / Ultra / Fast off. Plugin configuration model fields do not override composer selections. The Codex CLI uses its existing sign-in state. This project does not read or copy `auth.json`.
+
+### Use the plugin in Codex
+
 You can ask Codex directly:
 
 - “Check Aura MCP and permissions.”
@@ -74,7 +93,7 @@ You can ask Codex directly:
 | `aura_get_blueprint_meta` | Reads safe Blueprint structure declarations after validating arguments and the object path. |
 | `aura_get_blueprint_graph` | Reads nodes, pins, and connections after checking the asset type and path through safe metadata. |
 
-The three skills are `aura-diagnostics`, `unreal-workflow`, and `aura-conversations`. With Codex selected, one composer button displays the model and effort. Opening it shows a centered compact popover and changes the button text to `Select effort`. The model row offers only GPT-6.1 Sol and GPT-6 Astra. The reasoning slider has five stops matching the Codex UI: Low, Medium, High, Extra High, and Ultra. The label, thumb, and filled region update while dragging; Ultra uses a purple gradient. The lightning button toggles actual Fast mode independently of reasoning effort; its filled icon and footer indicator reflect the selection. The tooltip reads `Fast mode` / `More usage`: the [official speed documentation](https://learn.chatgpt.com/docs/agent-configuration/speed) gives no fixed speed multiplier for Sol or Astra. Selections are saved locally and take effect on the next message, including when continuing an existing conversation. Reset restores Ultra without changing the model or Fast setting. A Max value saved by the previous UI uses the highest visible Ultra stop; the bridge still accepts explicit `max` requests. Legacy requests without these fields default to `gpt-6.1-sol` / `ultra`, with Fast disabled. Plugin configuration model fields do not override composer selections. The Codex CLI uses its existing sign-in state. This project does not read or copy `auth.json`.
+The three skills are `aura-diagnostics`, `unreal-workflow`, and `aura-conversations`.
 
 ## Real conversations and Project organization
 
@@ -126,10 +145,12 @@ Restore verifies the hashes of the currently installed files and backups, and pr
 The code uses built-in Node.js modules and does not require `npm install`. Run the following offline regression tests from the repository root. Tests use isolated fake routers, MCP servers, and app-servers; they do not call a real model or modify UE assets:
 
 ```powershell
-node --test .\codex-model\apply-codex-model.test.cjs .\codex-model\tests\AuraCodexBridge.test.mjs .\codex-model\tests\BlueprintReadProxy.test.mjs .\codex-aura\tests\app-server.test.mjs .\codex-aura\tests\config-diagnostics.test.mjs .\codex-aura\tests\mcp-server.test.mjs .\codex-aura\tests\install.test.mjs .\codex-aura\tests\conversation-project.test.mjs
+node --test .\codex-model\apply-codex-model.test.cjs .\codex-model\codex-settings-ui.test.cjs .\codex-model\tests\AuraCodexBridge.test.mjs .\codex-model\tests\BlueprintReadProxy.test.mjs .\codex-aura\tests\app-server.test.mjs .\codex-aura\tests\config-diagnostics.test.mjs .\codex-aura\tests\mcp-server.test.mjs .\codex-aura\tests\install.test.mjs .\codex-aura\tests\conversation-project.test.mjs
 ```
 
-The locally installed 0.1.5 fix passed **181 tests, with 0 failures**, covering installation / restore, permission boundaries, Blueprint guards, lazy first-turn persistence, save receipts, native conversations, Project association, synchronization deadlines, exception handling, and cleanup of owned child processes. After adding regression coverage for default paths and empty configuration boundaries, the public version passed **185 tests, with 0 failures**. Separate live verification confirmed loading of 3 skills and 6 MCP tools, real conversation saves, and sidebar placement. This is recorded separately from the promise that pure diagnostics do not start inference. You can also run `npm test` directly at the repository root and check the repository's CI results.
+As of **2026-10-10**, the current `main` passed **216 offline regression tests, with 0 failures**, covering model / reasoning effort / Fast selection and persistence, changes within the same conversation, installation / restore, permission boundaries, Blueprint guards, lazy first-turn persistence, save receipts, native conversations, Project association, synchronization deadlines, exception handling, and cleanup of owned child processes. You can also run `npm test` directly at the repository root and check the repository's CI results.
+
+Historical live verification during the 0.1.5 save fix separately confirmed loading of 3 skills and 6 MCP tools, real saves for a new conversation and its second turn, and sidebar placement. This is recorded separately from offline tests and the promise that pure diagnostics do not start inference.
 
 Main directories:
 

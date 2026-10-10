@@ -6,6 +6,20 @@ Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-
 
 [Chinese installation guide](docs/README.zh-CN.md) · [Release notes: English / 中文](docs/RELEASE_NOTES.md) · [MIT license](LICENSE)
 
+## Latest update · 2026-10-10
+
+Choose the model, reasoning effort, and Fast mode directly in Aura's composer:
+
+| Setting | Available choices | Default |
+| --- | --- | --- |
+| Model | GPT-6.1 Sol / GPT-6 Astra | GPT-6.1 Sol |
+| Reasoning effort | Low / Medium / High / Extra High / Ultra | Ultra |
+| Fast mode | Independent lightning toggle; a filled icon indicates On | Off |
+
+Select **Codex** in Aura's model menu, then click the model / effort button below the message box. Choose a model, drag the effort slider, and use the lightning button to toggle Fast. Selections are saved locally and apply to the next message, including in an existing conversation. Reset restores **Ultra** while keeping the selected model and Fast setting. The Fast tooltip shows `Fast mode` / `More usage`.
+
+The current source passed **all 216 regression tests** on 2026-10-10, including per-turn settings on new and continued conversations, UI state, and installation / restoration. Existing installations can rerun the [installation commands](#installation) below to install the new controls, then reload the router and refresh Aura.
+
 ## Requirements
 
 Windows, Node.js, a signed-in Codex CLI, Aura 1.0.6, its Unreal plugin and an existing compatible `AuraChatTap.mjs` router. This repository supplies an integration patch; it does not ship the full Aura, DSH, Codex or Unreal products, or the router itself.
