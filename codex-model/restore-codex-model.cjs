@@ -15,8 +15,12 @@ const approvedFiles = new Set([
 for (const e of manifest.files) {
   const target = path.resolve(e.path);
   const catalogDir = path.resolve(manifest.appRoot, 'next', '.next', 'static', 'chunks');
+  const rendererChunk = path.dirname(target).toLowerCase() === catalogDir.toLowerCase()
+    && /^(?:6927|5648|1457)-.*\.js$/.test(path.basename(target));
+  const composerChunk = path.dirname(target).toLowerCase() === path.join(catalogDir, 'app').toLowerCase()
+    && /^page-.*\.js$/.test(path.basename(target));
   if (!approvedFiles.has(target.toLowerCase()) &&
-      !(path.dirname(target).toLowerCase() === catalogDir.toLowerCase() && /^6927-.*\.js$/.test(path.basename(target)))) {
+      !rendererChunk && !composerChunk) {
     throw new Error('Backup names an unexpected target: ' + target);
   }
   if (!fs.existsSync(target) || hash(fs.readFileSync(target)) !== e.installedSha256) {

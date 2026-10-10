@@ -11,6 +11,7 @@ const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const { buildCatalog, buildRouter } = require('./apply-codex-model.cjs');
+const { FIXTURES } = require('./codex-settings-ui.cjs');
 
 const dshEntry = '{name:"DeepSeek Harness",displayName:"DeepSeek Harness",isToolCallUnsupported:!1,costMultiplier:void 0}';
 const catalog = 'const catalog={models:[{name:"auto",displayName:"Auto"},' + dshEntry + ']};\n';
@@ -56,19 +57,28 @@ function fixture(t, changes = {}) {
   const routerRoot = path.join(root, 'DSH router');
   const backupRoot = path.join(root, 'backup');
   const catalogFile = path.join(appRoot, 'next', '.next', 'static', 'chunks', '6927-fixture.js');
+  const chunkDir = path.dirname(catalogFile);
+  const composerFile = path.join(chunkDir, 'app', 'page-fixture.js');
+  const transportFile = path.join(chunkDir, '5648-fixture.js');
+  const agentFile = path.join(chunkDir, '1457-fixture.js');
   const routerFile = path.join(routerRoot, 'AuraChatTap.mjs');
   const bridgeFile = path.join(appRoot, 'next', 'aura-codex-bridge.mjs');
   fs.mkdirSync(installerRoot, { recursive: true });
   fs.mkdirSync(path.dirname(catalogFile), { recursive: true });
+  fs.mkdirSync(path.dirname(composerFile), { recursive: true });
   fs.mkdirSync(routerRoot, { recursive: true });
   fs.copyFileSync(path.join(__dirname, 'apply-codex-model.cjs'), path.join(installerRoot, 'apply-codex-model.cjs'));
+  fs.copyFileSync(path.join(__dirname, 'codex-settings-ui.cjs'), path.join(installerRoot, 'codex-settings-ui.cjs'));
   fs.writeFileSync(path.join(installerRoot, 'AuraCodexAppServer.mjs'), 'export async function runAppServerTurn() {}\n');
   fs.writeFileSync(path.join(installerRoot, 'AuraCodexBridge.mjs'), changes.bridge ?? 'export async function respondFromCodex() {}\n');
   fs.writeFileSync(catalogFile, changes.catalog ?? catalog);
+  fs.writeFileSync(composerFile, changes.composer ?? FIXTURES.composer);
+  fs.writeFileSync(transportFile, changes.transport ?? FIXTURES.transport);
+  fs.writeFileSync(agentFile, changes.agent ?? FIXTURES.agentTransport);
   fs.writeFileSync(routerFile, changes.router ?? router);
   const { install } = require(path.join(installerRoot, 'apply-codex-model.cjs'));
-  const originals = new Map([[catalogFile, fs.readFileSync(catalogFile)], [routerFile, fs.readFileSync(routerFile)]]);
-  return { root, appRoot, routerRoot, backupRoot, catalogFile, routerFile, bridgeFile, install, originals };
+  const originals = new Map([catalogFile, routerFile, composerFile, transportFile, agentFile].map(file => [file, fs.readFileSync(file)]));
+  return { root, appRoot, routerRoot, backupRoot, catalogFile, composerFile, transportFile, agentFile, routerFile, bridgeFile, install, originals };
 }
 function unchanged(f) {
   for (const [file, bytes] of f.originals) assert.deepEqual(fs.readFileSync(file), bytes);
@@ -249,7 +259,7 @@ test('dry run validates all sources and leaves destinations and backups untouche
   const f = fixture(t);
   const result = f.install({ ...f, dryRun: true });
   assert.equal(result.dryRun, true);
-  assert.equal(result.changed.length, 4);
+  assert.equal(result.changed.length, 7);
   unchanged(f);
 });
 
@@ -257,10 +267,10 @@ test('install backs up original bytes and records every installed hash; rerun is
   const f = fixture(t);
   const beforeMode = fs.statSync(f.catalogFile).mode;
   const result = f.install(f);
-  assert.equal(result.changed.length, 4);
+  assert.equal(result.changed.length, 7);
   assert.equal(path.dirname(result.backupDir), f.backupRoot);
   const manifest = JSON.parse(fs.readFileSync(path.join(result.backupDir, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.files.length, 4);
+  assert.equal(manifest.files.length, 7);
   for (const entry of manifest.files) {
     assert.equal(entry.installedSha256, hash(fs.readFileSync(entry.path)));
     if (entry.existed) {
@@ -283,6 +293,9 @@ test('unknown catalog, missing router dependency, and invalid bridge fail before
     { catalog: 'const models=[];' },
     { router: router.replace('async function auraCloudToken(', 'async function removedToken(') },
     { bridge: 'export async function broken(' },
+    { composer: 'var unrelated=1;' },
+    { transport: 'function unrelated(){}' },
+    { agent: 'function unrelated(){}' },
   ]) {
     const f = fixture(t, changes);
     assert.throws(() => f.install(f));
@@ -297,7 +310,18 @@ test('ambiguous Aura model chunk selection fails before any destination write', 
   unchanged(f);
 });
 
-test('failed final write rolls back the router, catalog, and new bridge after complete backups', t => {
+test('missing or ambiguous renderer chunks fail before any destination write', t => {
+  for (const family of ['composer', 'chat transport', 'agent transport']) {
+    const f = fixture(t);
+    const original = family === 'composer' ? f.composerFile : family === 'chat transport' ? f.transportFile : f.agentFile;
+    const duplicate = path.join(path.dirname(original), path.basename(original).replace('fixture', 'other'));
+    fs.copyFileSync(original, duplicate);
+    assert.throws(() => f.install(f), /Expected one Aura 1.0.6 .* chunk/);
+    unchanged(f);
+  }
+});
+
+test('failed final renderer write rolls back all seven targets after complete backups', t => {
   const f = fixture(t);
   const originalWrite = fs.writeFileSync;
   let failed = false;
@@ -307,18 +331,18 @@ test('failed final write rolls back the router, catalog, and new bridge after co
       const dirs = fs.readdirSync(f.backupRoot);
       const manifestPath = path.join(f.backupRoot, dirs[0], 'manifest.json');
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      sawCompleteBackupBeforeWrite = manifest.files.length === 4 && manifest.files.every(e =>
+      sawCompleteBackupBeforeWrite = manifest.files.length === 7 && manifest.files.every(e =>
         !e.existed || hash(fs.readFileSync(path.join(path.dirname(manifestPath), e.backupName))) === e.sha256);
     }
-    if (!failed && path.resolve(file) === path.resolve(f.catalogFile)) {
+    if (!failed && path.resolve(file) === path.resolve(f.agentFile)) {
       failed = true;
       originalWrite.call(fs, file, 'partial failed write');
-      throw new Error('simulated catalog write failure');
+      throw new Error('simulated renderer write failure');
     }
     return originalWrite.call(fs, file, ...args);
   };
   try {
-    assert.throws(() => f.install(f), /simulated catalog write failure/);
+    assert.throws(() => f.install(f), /simulated renderer write failure/);
   } finally { fs.writeFileSync = originalWrite; }
   assert.equal(sawCompleteBackupBeforeWrite, true);
   for (const [file, bytes] of f.originals) assert.deepEqual(fs.readFileSync(file), bytes);

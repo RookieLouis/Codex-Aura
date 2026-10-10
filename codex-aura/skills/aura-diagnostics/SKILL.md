@@ -7,7 +7,7 @@ description: 诊断 Aura MCP 自检、连接失败、模型接入和权限策略
 
 先查明失败发生在哪一层，再处理实际原因。用户要求修复且范围已明确时继续完成必要修复；诊断技能不自动增加授权或放宽运行模式。
 
-1. 调用 `aura_doctor({probe_mcp:true})`，检查 CLI、登录状态、固定模型配置、路由健康、stdio 启动和 MCP `initialize` / `tools/list`。只检查路径时可设 `probe_mcp:false`。自检不调用 `get_unreal_context`、编译、资产编辑或截图工具；不要为验证连接增加这些有副作用的操作。
+1. 调用 `aura_doctor({probe_mcp:true})`，检查 CLI、登录状态、默认模型配置、路由健康、stdio 启动和 MCP `initialize` / `tools/list`。Aura 输入框中的模型与思考强度选择会覆盖每轮默认值。只检查路径时可设 `probe_mcp:false`。自检不调用 `get_unreal_context`、编译、资产编辑或截图工具；不要为验证连接增加这些有副作用的操作。
 2. 调用 `aura_permissions`，提供实际 `mode`、`active_tool`、精确 `project_dir` / `project_name` 和本轮真实 `user_text`；没有这些信息时说明缺失，不伪装 Agent 或用历史消息充当授权。此工具解释现有边界，不授予权限。
 3. 根据实际输出区分故障：
 

@@ -23,7 +23,7 @@ async function fixture(t, scenario = 'success') {
     readLog: async () => (await fs.readFile(logFile, 'utf8')).trim().split('\n').map(JSON.parse) };
 }
 
-test('starts a native thread with honest identity, distinct user context, fixed model, and deduplicated streaming', async t => {
+test('starts a native thread with honest identity, distinct user context, default model, and deduplicated streaming', async t => {
   const f = await fixture(t), events = [], text = [];
   const result = await runAppServerTurn({ ...f.options, onEvent: e => events.push(e), onText: s => text.push(s) });
   assert.equal(result.answer, 'Hello world'); assert.equal(result.source, 'vscode');
@@ -35,12 +35,48 @@ test('starts a native thread with honest identity, distinct user context, fixed 
   assert.equal(start.developerInstructions, 'Read-only developer context.');
   assert.equal(start.approvalPolicy, 'never'); assert.equal(start.sandbox, 'read-only');
   assert.equal(start.config.model_reasoning_effort, 'ultra'); assert.equal(start.model, 'gpt-6.1-sol');
+  assert.equal(start.serviceTier, 'default'); assert.equal(start.config.service_tier, 'default');
+  assert.equal(start.config.features.fast_mode, false);
   const turn = calls.find(v => v.method === 'turn/start').params;
+  assert.equal(turn.model, 'gpt-6.1-sol'); assert.equal(turn.effort, 'ultra');
+  assert.equal(turn.serviceTier, 'default');
   assert.deepEqual(turn.input, [{ type: 'text', text: 'Actual user request' }]);
   assert.deepEqual(turn.sandboxPolicy, { type: 'readOnly', networkAccess: false });
   assert.ok(calls.some(v => v.method === 'thread/name/set'));
   assert.ok(events.some(e => e.type === 'item.completed' && e.item.type === 'mcp_tool_call'));
   assert.ok(events.some(e => e.type === 'turn.completed'));
+});
+
+for (const [lifecycle, resume, method, selection] of [
+  ['new', {}, 'thread/start', { model: 'gpt-6-astra', reasoning: 'medium' }],
+  ['resumed', { threadId: THREAD, migrateLegacy: false }, 'thread/resume', { model: 'gpt-6-astra', reasoning: 'ultra' }],
+  ['migrated', { threadId: OLD_THREAD }, 'thread/fork', { model: 'gpt-6.1-sol', reasoning: 'xhigh' }],
+]) {
+  for (const fast of [false, true]) {
+    test(`applies the selected model, effort and Fast ${fast} to both ${lifecycle} thread settings and turn start`, async t => {
+      const f = await fixture(t);
+      await runAppServerTurn({ ...f.options, ...resume, ...selection, fast });
+      const calls = await f.readLog();
+      const settings = calls.find(v => v.method === method).params;
+      const turn = calls.find(v => v.method === 'turn/start').params;
+      assert.equal(settings.model, selection.model);
+      assert.equal(settings.config.model_reasoning_effort, selection.reasoning);
+      assert.equal(turn.model, selection.model); assert.equal(turn.effort, selection.reasoning);
+      const tier = fast ? 'fast' : 'default';
+      assert.equal(settings.serviceTier, tier); assert.equal(settings.config.service_tier, tier);
+      assert.equal(settings.config.features.fast_mode, fast); assert.equal(turn.serviceTier, tier);
+      assert.equal(turn.approvalPolicy, 'never'); assert.equal(turn.sandboxPolicy.type, 'readOnly');
+    });
+  }
+}
+
+test('rejects unsupported model, effort or Fast field before starting the native process', async t => {
+  const f = await fixture(t);
+  for (const selection of [
+    { model: 'gpt-6-sol' }, { model: null }, { reasoning: 'none' }, { reasoning: 'minimal' }, { reasoning: null },
+    { fast: 'true' }, { fast: 1 }, { fast: null },
+  ]) await assert.rejects(runAppServerTurn({ ...f.options, ...selection }), /Unsupported Aura Codex/);
+  assert.equal(await fs.stat(f.logFile).then(() => true, () => false), false);
 });
 
 test('resumes the exact original thread and preserves its source', async t => {

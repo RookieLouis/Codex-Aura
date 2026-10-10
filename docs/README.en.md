@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md) · **English** · [首页 / Bilingual overview](../README.md)
 
-Select **Codex** from Aura's model menu, use your existing Codex sign-in to run **GPT-6.1-Sol / Ultra**, and view real Aura conversations in Codex. The plugin also provides MCP self-checks, permission diagnostics, and an Unreal Engine workflow.
+Select **Codex** from Aura's model menu, use your existing Codex sign-in to run **GPT-6.1 Sol or GPT-6 Astra**, and view real Aura conversations in Codex. Select the model and reasoning effort in the composer; the default is Sol / Ultra. The plugin also provides MCP self-checks, permission diagnostics, and an Unreal Engine workflow.
 
 Current version: **0.1.5**. Verified on **Windows, Aura 1.0.6, and Node.js 24.14.1**. Earlier native protocol verification used Codex CLI 0.159.2; plugin loading and the two-turn save verification for 0.1.5 used 0.159.0-alpha.12.1. Other versions may change UI resources or protocols. The installer checks known patch locations and stops if they do not match.
 
@@ -74,7 +74,7 @@ You can ask Codex directly:
 | `aura_get_blueprint_meta` | Reads safe Blueprint structure declarations after validating arguments and the object path. |
 | `aura_get_blueprint_graph` | Reads nodes, pins, and connections after checking the asset type and path through safe metadata. |
 
-The three skills are `aura-diagnostics`, `unreal-workflow`, and `aura-conversations`. The runtime model is fixed to `gpt-6.1-sol`, with reasoning effort fixed to `ultra`; changing a model field in configuration does not switch the model. The Codex CLI uses its existing sign-in state. This project does not read or copy `auth.json`.
+The three skills are `aura-diagnostics`, `unreal-workflow`, and `aura-conversations`. With Codex selected, one composer button displays the model and effort. Opening it shows a centered compact popover and changes the button text to `Select effort`. The model row offers only GPT-6.1 Sol and GPT-6 Astra. The reasoning slider has five stops matching the Codex UI: Low, Medium, High, Extra High, and Ultra. The label, thumb, and filled region update while dragging; Ultra uses a purple gradient. The lightning button toggles actual Fast mode independently of reasoning effort; its filled icon and footer indicator reflect the selection. The tooltip reads `Fast mode` / `More usage`: the [official speed documentation](https://learn.chatgpt.com/docs/agent-configuration/speed) gives no fixed speed multiplier for Sol or Astra. Selections are saved locally and take effect on the next message, including when continuing an existing conversation. Reset restores Ultra without changing the model or Fast setting. A Max value saved by the previous UI uses the highest visible Ultra stop; the bridge still accepts explicit `max` requests. Legacy requests without these fields default to `gpt-6.1-sol` / `ultra`, with Fast disabled. Plugin configuration model fields do not override composer selections. The Codex CLI uses its existing sign-in state. This project does not read or copy `auth.json`.
 
 ## Real conversations and Project organization
 

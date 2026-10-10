@@ -198,11 +198,11 @@ export async function runDoctor(config, { probeMcp = true, timeoutMs = 12_000, e
       items.push(item('codex-login', 'fail', 'Codex login status did not succeed.', 'Run codex login and retry.', { credentialsExposed: false }));
     }
   } catch { items.push(item('codex-cli', 'fail', 'A working Codex CLI was not found at the configured or standard locations.', 'Install Codex CLI or update cliPath, then run codex login.')); }
-  items.push(item('effective-model', 'pass', `Aura uses ${MODEL} / ${REASONING}.`, '', { model: MODEL, reasoning: REASONING, source: 'Aura bridge invocation override' }));
+  items.push(item('effective-model', 'pass', `Aura defaults to ${MODEL} / ${REASONING}; the composer can select GPT-6.1 Sol or GPT-6 Astra and reasoning effort per turn.`, '', { model: MODEL, reasoning: REASONING, source: 'Aura bridge fallback; composer selection overrides per turn' }));
   try {
     const settings = await readCodexSettings(config);
     items.push(item('codex-defaults', settings.model === MODEL && settings.model_reasoning_effort === REASONING ? 'pass' : 'warn',
-      settings.model === MODEL && settings.model_reasoning_effort === REASONING ? 'Codex user defaults match the Aura model.' : 'Codex user defaults differ or are absent; the Aura bridge pins its own model and reasoning.', '', { settings }));
+      settings.model === MODEL && settings.model_reasoning_effort === REASONING ? 'Codex user defaults match the Aura fallback.' : 'Codex user defaults differ or are absent; Aura sends its composer selection or its own fallback per turn.', '', { settings }));
   } catch { items.push(item('codex-defaults', 'warn', 'The known Codex scalar settings could not be read.', 'Check permissions on config.toml.')); }
   let health;
   try {

@@ -47,7 +47,7 @@ test('explicit router and test roots support environment defaults with JSON and 
   assert.equal(overridden.routerRoot, path.join(dir, 'invocation-router'));
 });
 
-test('config stays fixed at GPT-6.1-Sol/Ultra and does not expose extra or credential fields', async (t) => {
+test('plugin config reports Sol/Ultra fallback and does not expose extra or credential fields', async (t) => {
   const dir = await temp(t);
   await writeJson(path.join(dir, 'config.json'), { model: 'wrong-model', reasoning: 'low', apiKey: 'CONFIG_SECRET', auraRoot: path.join(dir, 'custom') });
   const config = await loadConfig({ configPath: path.join(dir, 'config.json'), env: { LOCALAPPDATA: dir, USERPROFILE: dir } });

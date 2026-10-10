@@ -108,7 +108,8 @@ export async function install({ pluginSource = sourceRoot, bridgeSource = path.r
     name: 'codex-aura', source: { source: 'local', path: './plugins/codex-aura' },
     policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Developer Tools',
   }] }, null, 2) + '\n') });
-  // Keep existing user-selected paths. Model and reasoning remain invariants.
+  // Keep existing user-selected paths. These are fallback values; the Aura
+  // composer sends its model and reasoning selection on each Codex turn.
   const previousConfig = await read(config.configPath);
   const storedConfig = previousConfig ? JSON.parse(previousConfig) : {};
   staging.push({ file: config.configPath, bytes: Buffer.from(JSON.stringify({ ...storedConfig,

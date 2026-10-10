@@ -17,6 +17,20 @@ const MAX_TEXT = 180_000;
 const MAX_LINE = 4_000_000;
 const CODEX_MODEL = 'gpt-6.1-sol';
 const CODEX_REASONING = 'ultra';
+const CODEX_MODELS = Object.freeze(['gpt-6.1-sol', 'gpt-6-astra']);
+const CODEX_EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max', 'ultra']);
+
+// `model` stays Aura's routing key (Codex). Resolve the model and reasoning
+// separately on every turn, including resume, without changing Codex defaults.
+export function resolveCodexSelection(body = {}) {
+  const model = body.codexModel === undefined ? CODEX_MODEL : body.codexModel;
+  const reasoning = body.codexReasoning === undefined ? CODEX_REASONING : body.codexReasoning;
+  const fast = body.codexFast === undefined ? false : body.codexFast;
+  if (!CODEX_MODELS.includes(model)) throw new Error('无效的 Codex 模型，请选择 GPT-6.1 Sol 或 GPT-6 Astra。');
+  if (!CODEX_EFFORTS.includes(reasoning)) throw new Error('无效的 Codex 思考强度，请重新选择 Low、Medium、High、Extra high、Max 或 Ultra。');
+  if (typeof fast !== 'boolean') throw new Error('无效的 Codex Fast 设置，请重新开启或关闭 Fast 模式。');
+  return { model, reasoning, fast, serviceTier: fast ? 'fast' : 'default' };
+}
 function validCloudReceipt(receipt) {
   return receipt && typeof receipt === 'object'
     && typeof receipt.threadId === 'string' && Boolean(receipt.threadId.trim())
@@ -535,6 +549,8 @@ export function createCodexBridge(defaults = {}) {
       try {
         turn = extractAuraTurn(input);
         const body = turn.body;
+        const selection = resolveCodexSelection(body);
+        emit({ type: 'data-aura-codex-selection', transient: true, data: selection });
         project = typeof opts.detectProject === 'function' ? await opts.detectProject() : { name: '', dir: opts.fallbackCwd || '' };
         const cwd = path.resolve(opts.noArchive ? opts.fallbackCwd || storeRoot : project.dir || opts.fallbackCwd || storeRoot);
         if ((!project.dir || opts.noArchive) && !opts.fallbackCwd) await fs.mkdir(cwd, { recursive: true });
@@ -568,7 +584,8 @@ export function createCodexBridge(defaults = {}) {
         const cli = opts.cli || await (opts.resolveCli || resolveCodexCli)({ env: opts.env || process.env });
         const env = { ...process.env, ...(opts.env || {}) };
         const flags = await mcpOverrides(cli, policy, opts, env);
-        const configArgs = ['-c', `model=${jsonString(CODEX_MODEL)}`, '-c', `model_reasoning_effort=${jsonString(CODEX_REASONING)}`,
+        const configArgs = ['-c', `model=${jsonString(selection.model)}`, '-c', `model_reasoning_effort=${jsonString(selection.reasoning)}`,
+          '-c', `features.fast_mode=${selection.fast}`, '-c', `service_tier=${jsonString(selection.serviceTier)}`,
           '-c', `sandbox_mode=${jsonString(policy.sandbox)}`, '-c', 'approval_policy="never"', ...flags];
         let history = record.history.length ? record.history : normalizeHistory(turn.history, turn.userText);
         if (!record.threadId && typeof opts.readCloudHistory === 'function' && body.cloudThreadId) {
@@ -577,7 +594,7 @@ export function createCodexBridge(defaults = {}) {
           if (remote.length) history = remote;
         }
         const developerInstructions = buildInstructions(turn, policy, record, history);
-        rec({ kind: 'codex-turn', convId: record.convId, threadId: record.threadId, model: CODEX_MODEL, reasoning: CODEX_REASONING,
+        rec({ kind: 'codex-turn', convId: record.convId, threadId: record.threadId, ...selection,
           mode: policy.label, sandbox: policy.sandbox, mcp: policy.mcp, resumed: !!record.threadId });
         const callbacks = {
           cwd, env, signal: controller.signal, timeoutMs: opts.timeoutMs || 900_000, rec,
@@ -596,7 +613,7 @@ export function createCodexBridge(defaults = {}) {
             if (nativeThread.nativeProjectId || nativeThread.projectId) record.nativeProjectId = nativeThread.nativeProjectId || nativeThread.projectId;
             if (nativeThread.conversationProject?.workspace) record.conversationWorkspace = nativeThread.conversationProject.workspace;
             if (!opts.noArchive) await updateStore(storeFile, (state) => { state.conversations[record.id] = record; });
-            emit({ type: 'data-aura-codex-thread', transient: true, data: { threadId, source: record.source, url: `codex://threads/${threadId}` } });
+            emit({ type: 'data-aura-codex-thread', transient: true, data: { threadId, source: record.source, ...selection, url: `codex://threads/${threadId}` } });
           },
         };
         // Ephemeral HTTP probes retain the CLI path and never create sidebar
@@ -613,7 +630,7 @@ export function createCodexBridge(defaults = {}) {
           const conversationWorkspace = conversationRoot && !['.', '..'].includes(projectName) && !/[\\/:\0]/.test(projectName)
             ? path.join(conversationRoot, projectName) : undefined;
           result = await runNative({ ...callbacks, cli, args: configArgs, threadId: record.threadId,
-            userText: turn.userText, developerInstructions, model: CODEX_MODEL, reasoning: CODEX_REASONING,
+            userText: turn.userText, developerInstructions, ...selection,
             policy, migrateLegacy: true, conversationWorkspace, title: `Aura · ${project.name || path.basename(cwd)} · ${record.first.replace(/\s+/g, ' ').slice(0, 60)}`,
             onEvent: (event) => {
               if (['command_execution', 'mcp_tool_call', 'file_change'].includes(event.item?.type)) {

@@ -6,6 +6,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const { spawnSync } = require('node:child_process');
+const { buildComposer, buildTransport, buildAgentTransport } = require('./codex-settings-ui.cjs');
 
 function hash(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
 function replaceOnce(text, before, after, label) {
@@ -110,6 +111,14 @@ function install({ appRoot, routerRoot, backupRoot, dryRun = false }) {
   const catalogs = fs.readdirSync(chunkDir).filter(f => /^6927-.*\.js$/.test(f));
   if (catalogs.length !== 1) throw new Error('Expected Aura 1.0.6 model catalog; inspect this Aura version first');
   const catalogFile = path.join(chunkDir, catalogs[0]);
+  const selectChunk = (dir, pattern, label) => {
+    const matches = fs.readdirSync(dir).filter(file => pattern.test(file));
+    if (matches.length !== 1) throw new Error(`Expected one Aura 1.0.6 ${label} chunk; inspect this Aura version first`);
+    return path.join(dir, matches[0]);
+  };
+  const composerFile = selectChunk(path.join(chunkDir, 'app'), /^page-.*\.js$/, 'composer');
+  const transportFile = selectChunk(chunkDir, /^5648-.*\.js$/, 'chat transport');
+  const agentFile = selectChunk(chunkDir, /^1457-.*\.js$/, 'agent transport');
   const routerFile = path.join(routerRoot, 'AuraChatTap.mjs');
   const bridgeFile = path.join(appRoot, 'next', 'aura-codex-bridge.mjs');
   const bridgeSource = path.join(__dirname, 'AuraCodexBridge.mjs');
@@ -118,6 +127,9 @@ function install({ appRoot, routerRoot, backupRoot, dryRun = false }) {
     { file: bridgeFile, bytes: fs.readFileSync(bridgeSource) },
     { file: routerFile, bytes: Buffer.from(buildRouter(fs.readFileSync(routerFile, 'utf8'), bridgeFile)) },
     { file: catalogFile, bytes: Buffer.from(buildCatalog(fs.readFileSync(catalogFile, 'utf8'))) },
+    { file: composerFile, bytes: Buffer.from(buildComposer(fs.readFileSync(composerFile, 'utf8'))) },
+    { file: transportFile, bytes: Buffer.from(buildTransport(fs.readFileSync(transportFile, 'utf8'))) },
+    { file: agentFile, bytes: Buffer.from(buildAgentTransport(fs.readFileSync(agentFile, 'utf8'))) },
   ];
   for (const edit of edits) checkSyntax(edit.bytes.toString('utf8'), edit.file);
   const changed = edits.filter(e => !fs.existsSync(e.file) || !fs.readFileSync(e.file).equals(e.bytes));

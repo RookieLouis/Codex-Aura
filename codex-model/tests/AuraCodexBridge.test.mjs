@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { EventEmitter } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { createCodexBridge, extractAuraTurn, codexModePolicy, resolveCodexCli } from '../AuraCodexBridge.mjs';
+import { createCodexBridge, extractAuraTurn, codexModePolicy, resolveCodexCli, resolveCodexSelection } from '../AuraCodexBridge.mjs';
 
 const fixture = fileURLToPath(new URL('./fake-codex.mjs', import.meta.url));
 class Response extends EventEmitter {
@@ -42,6 +42,99 @@ async function harness(t, extra = {}) {
 const request = (extra = {}) => ({
   model: 'Codex', mode: 'analyze', creationKey: 'tab-one', projectId: 'project-one', turnId: 'turn-one',
   messages: [{ role: 'user', parts: [{ type: 'text', text: 'Explain this Blueprint.' }] }], ...extra,
+});
+
+test('accepts two models, six efforts and boolean Fast; omitted fields preserve standard speed', () => {
+  for (const model of ['gpt-6.1-sol', 'gpt-6-astra']) {
+    for (const reasoning of ['low', 'medium', 'high', 'xhigh', 'max', 'ultra']) {
+      for (const fast of [false, true]) {
+        assert.deepEqual(resolveCodexSelection({ model: 'Codex', codexModel: model, codexReasoning: reasoning, codexFast: fast }),
+          { model, reasoning, fast, serviceTier: fast ? 'fast' : 'default' });
+      }
+    }
+  }
+  assert.deepEqual(resolveCodexSelection({ model: 'Codex' }), { model: 'gpt-6.1-sol', reasoning: 'ultra', fast: false, serviceTier: 'default' });
+  assert.deepEqual(resolveCodexSelection({ codexModel: 'gpt-6-astra' }), { model: 'gpt-6-astra', reasoning: 'ultra', fast: false, serviceTier: 'default' });
+  assert.deepEqual(resolveCodexSelection({ codexReasoning: 'medium' }), { model: 'gpt-6.1-sol', reasoning: 'medium', fast: false, serviceTier: 'default' });
+});
+
+test('native model and reasoning change on each resumed turn without leaking into another turn or routing key', async t => {
+  const calls = [], events = [], threadId = '77777777-7777-7777-8777-777777777777';
+  const h = await harness(t, { backend: 'native', runAppServerTurn: async options => {
+    calls.push(options); await options.onThread(threadId, { source: 'vscode' });
+    options.emitText('Selected answer'); return { answer: 'Selected answer', threadId };
+  } });
+  for (const extra of [
+    { codexModel: 'gpt-6.1-sol', codexReasoning: 'high', codexFast: true },
+    { codexModel: 'gpt-6-astra', codexReasoning: 'low', codexFast: false }, {},
+  ]) {
+    const response = new Response();
+    assert.equal((await h.bridge.respondFromCodex(response, {}, { body: request(extra) }, e => events.push(e))).ok, true);
+    const selected = resolveCodexSelection(extra);
+    assert.deepEqual(response.parts().find(p => p.type === 'data-aura-codex-selection').data, selected);
+    const nativeIdentity = response.parts().find(p => p.type === 'data-aura-codex-thread').data;
+    assert.equal(nativeIdentity.model, selected.model); assert.equal(nativeIdentity.reasoning, selected.reasoning);
+    assert.equal(nativeIdentity.fast, selected.fast); assert.equal(nativeIdentity.serviceTier, selected.serviceTier);
+  }
+  for (const [index, selected] of [
+    { model: 'gpt-6.1-sol', reasoning: 'high', fast: true }, { model: 'gpt-6-astra', reasoning: 'low', fast: false },
+    { model: 'gpt-6.1-sol', reasoning: 'ultra', fast: false },
+  ].entries()) {
+    const call = calls[index];
+    assert.equal(call.model, selected.model); assert.equal(call.reasoning, selected.reasoning);
+    assert.equal(call.fast, selected.fast); assert.equal(call.serviceTier, selected.fast ? 'fast' : 'default');
+    assert.ok(call.args.includes(`model="${selected.model}"`));
+    assert.ok(call.args.includes(`model_reasoning_effort="${selected.reasoning}"`));
+    assert.ok(call.args.includes(`features.fast_mode=${selected.fast}`));
+    assert.ok(call.args.includes(`service_tier="${selected.fast ? 'fast' : 'default'}"`));
+    assert.equal(call.threadId, index ? threadId : '');
+    assert.equal(call.policy.sandbox, 'read-only'); assert.ok(call.args.includes('approval_policy="never"'));
+    const recorded = events.filter(e => e.kind === 'codex-turn')[index];
+    assert.equal(recorded.model, selected.model); assert.equal(recorded.reasoning, selected.reasoning);
+    assert.equal(recorded.fast, selected.fast); assert.equal(recorded.serviceTier, selected.fast ? 'fast' : 'default');
+  }
+  const state = JSON.parse(await fs.readFile(h.bridge.storeFile, 'utf8'));
+  assert.equal(Object.keys(state.conversations).length, 1);
+  assert.equal(Object.values(state.conversations)[0].threadId, threadId);
+});
+
+test('exec selection reaches CLI config on both a new and resumed conversation', async t => {
+  const h = await harness(t);
+  const first = await h.bridge.respondFromCodex(new Response(), {}, request({ codexModel: 'gpt-6-astra', codexReasoning: 'max', codexFast: true }));
+  const second = await h.bridge.respondFromCodex(new Response(), {}, request({ codexModel: 'gpt-6.1-sol', codexReasoning: 'xhigh', codexFast: false }));
+  assert.equal(first.ok, true); assert.equal(second.ok, true); assert.equal(first.threadId, second.threadId);
+  const calls = await h.execs();
+  assert.ok(calls[0].args.includes('model="gpt-6-astra"')); assert.ok(calls[0].args.includes('model_reasoning_effort="max"'));
+  assert.ok(calls[1].args.includes('model="gpt-6.1-sol"')); assert.ok(calls[1].args.includes('model_reasoning_effort="xhigh"'));
+  assert.ok(calls[0].args.includes('features.fast_mode=true')); assert.ok(calls[0].args.includes('service_tier="fast"'));
+  assert.ok(calls[1].args.includes('features.fast_mode=false')); assert.ok(calls[1].args.includes('service_tier="default"'));
+  assert.ok(calls[1].args.includes('resume')); assert.ok(calls[1].args.includes(first.threadId));
+});
+
+test('invalid selections reject before project detection, CLI probes, inference or store writes', async t => {
+  const h = await harness(t);
+  await h.bridge.respondFromCodex(new Response(), {}, request());
+  const previous = await fs.readFile(h.bridge.storeFile, 'utf8');
+  const previousLog = await fs.readFile(h.log, 'utf8');
+  let projects = 0, cliProbes = 0, nativeRuns = 0;
+  const invalid = [
+    ...['gpt-6-sol', 'GPT-6 Astra', '', null, ['gpt-6-astra'], 1].map(codexModel => ({ codexModel })),
+    ...['none', 'minimal', 'extra-high', '', null, ['ultra'], 1].map(codexReasoning => ({ codexReasoning })),
+    ...['true', 'false', '', null, 0, 1, [], {}].map(codexFast => ({ codexFast })),
+  ];
+  for (const fields of invalid) {
+    const response = new Response();
+    const result = await h.bridge.respondFromCodex(response, {}, request(fields), () => {}, {
+      cli: undefined, resolveCli: async () => { cliProbes++; throw new Error('Must not probe'); },
+      detectProject: () => { projects++; return { dir: h.projectDir }; },
+      runAppServerTurn: async () => { nativeRuns++; throw new Error('Must not infer'); }, backend: 'native',
+    });
+    assert.equal(result.ok, false); assert.match(response.answer(), /无效的 Codex/);
+    assert.ok(!response.parts().some(p => p.type === 'data-aura-codex-selection'));
+  }
+  assert.deepEqual({ projects, cliProbes, nativeRuns }, { projects: 0, cliProbes: 0, nativeRuns: 0 });
+  assert.equal(await fs.readFile(h.bridge.storeFile, 'utf8'), previous);
+  assert.equal(await fs.readFile(h.log, 'utf8'), previousLog);
 });
 
 test('native conversation workspace follows the user home, configured root and explicit override', async (t) => {

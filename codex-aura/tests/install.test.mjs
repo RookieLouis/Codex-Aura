@@ -8,6 +8,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { install, restore } from '../scripts/install.mjs';
+import settingsUi from '../../codex-model/codex-settings-ui.cjs';
 
 const actualBridgeRoot = fileURLToPath(new URL('../../codex-model/', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -98,6 +99,10 @@ async function fixture(t, { scenario = 'ok', cacheVersion = '0.1.0' } = {}) {
   const configPath = path.join(root, 'config.json'), userConfig = path.join(codexHome, 'config.toml');
   const registry = path.join(codexHome, 'plugins', 'marketplaces.json');
   const catalogFile = path.join(auraRoot, 'next', '.next', 'static', 'chunks', '6927-fixture.js');
+  const chunkDir = path.dirname(catalogFile);
+  const composerFile = path.join(chunkDir, 'app', 'page-fixture.js');
+  const transportFile = path.join(chunkDir, '5648-fixture.js');
+  const agentFile = path.join(chunkDir, '1457-fixture.js');
   const routerFile = path.join(routerRoot, 'AuraChatTap.mjs');
   const bridgeFile = path.join(auraRoot, 'next', 'aura-codex-bridge.mjs');
   const appServerFile = path.join(auraRoot, 'next', 'AuraCodexAppServer.mjs');
@@ -116,15 +121,18 @@ async function fixture(t, { scenario = 'ok', cacheVersion = '0.1.0' } = {}) {
   await write(path.join(pluginSource, 'tests', 'excluded.txt'), 'not distributed');
   await json(path.join(pluginSource, 'auth.json'), { token: 'NEVER_STAGE_AUTH_SENTINEL' });
   await fs.mkdir(bridgeSource, { recursive: true });
-  for (const name of ['apply-codex-model.cjs', 'restore-codex-model.cjs']) await fs.copyFile(path.join(actualBridgeRoot, name), path.join(bridgeSource, name));
+  for (const name of ['apply-codex-model.cjs', 'restore-codex-model.cjs', 'codex-settings-ui.cjs']) await fs.copyFile(path.join(actualBridgeRoot, name), path.join(bridgeSource, name));
   await write(path.join(bridgeSource, 'AuraCodexBridge.mjs'), 'export async function respondFromCodex() {}\n');
   await write(path.join(bridgeSource, 'AuraCodexAppServer.mjs'), 'export async function runAppServerTurn() {}\n');
   await write(catalogFile, 'const catalog={models:[{name:"DeepSeek Harness",displayName:"DeepSeek Harness",isToolCallUnsupported:!1,costMultiplier:void 0}]};\n');
+  await write(composerFile, settingsUi.FIXTURES.composer);
+  await write(transportFile, settingsUi.FIXTURES.transport);
+  await write(agentFile, settingsUi.FIXTURES.agentTransport);
   await write(routerFile, router);
   await json(path.join(root, 'cli-fixture.json'), { scenario, cacheVersion, codexHome, userConfig, registry, backupRoot });
   const cliFile = path.join(root, 'fake-cli.mjs'); await write(cliFile, fakeCli);
   const originals = new Map();
-  for (const file of [configPath, userConfig, registry, catalogFile, routerFile]) originals.set(file, await fs.readFile(file));
+  for (const file of [configPath, userConfig, registry, catalogFile, routerFile, composerFile, transportFile, agentFile]) originals.set(file, await fs.readFile(file));
   return { root, pluginSource, bridgeSource, auraRoot, routerRoot, codexHome, dataRoot, backupRoot, configPath, userConfig, registry,
     catalogFile, routerFile, bridgeFile, appServerFile, originals,
     options: { pluginSource, bridgeSource, configPath, dataRoot, backupRoot, cli: { command: process.execPath, prefixArgs: [cliFile, root] } } };

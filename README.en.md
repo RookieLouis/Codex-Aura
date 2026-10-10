@@ -2,7 +2,7 @@
 
 [简体中文](README.md#中文说明) · **English** · [Full English guide](docs/README.en.md)
 
-Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-6.1-Sol / Ultra**, and saves real conversations through Codex's app-server protocol. Includes six read-only MCP tools and three skills for diagnostics, Blueprint inspection and Unreal workflows.
+Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-6.1 Sol or GPT-6 Astra**, and saves real conversations through Codex's app-server protocol. Select the model, reasoning effort, and Fast mode in the composer for each turn; the default is Sol / Ultra with Fast off. Includes six read-only MCP tools and three skills for diagnostics, Blueprint inspection and Unreal workflows.
 
 [Chinese installation guide](docs/README.zh-CN.md) · [Release notes: English / 中文](docs/RELEASE_NOTES.md) · [MIT license](LICENSE)
 

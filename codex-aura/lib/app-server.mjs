@@ -195,7 +195,7 @@ export async function setConversationDesktopWorkspace({ threadId, workspace, pro
  */
 export async function runAppServerTurn({
   cli, args = [], cwd, env = process.env, threadId: resumeId = '', userText,
-  developerInstructions = '', model = 'gpt-6.1-sol', reasoning = 'ultra',
+  developerInstructions = '', model = 'gpt-6.1-sol', reasoning = 'ultra', fast = false,
   policy = { sandbox: 'read-only' }, signal, timeoutMs = 900_000,
   workspaceSyncTimeoutMs = 5000,
   ephemeral = false, title, migrateLegacy = true, conversationWorkspace, onEvent = () => {}, onThread = () => {},
@@ -206,6 +206,12 @@ export async function runAppServerTurn({
   if (resumeId && !UUID.test(resumeId)) throw new Error('Invalid Codex thread ID.');
   if (!['read-only', 'workspace-write'].includes(policy.sandbox)) throw new Error('Unsupported Aura sandbox policy.');
   if (!Array.isArray(args) || args.some(v => typeof v !== 'string')) throw new Error('Invalid Codex arguments.');
+  if (!['gpt-6.1-sol', 'gpt-6-astra'].includes(model)) throw new Error('Unsupported Aura Codex model.');
+  if (!['low', 'medium', 'high', 'xhigh', 'max', 'ultra'].includes(reasoning)) throw new Error('Unsupported Aura Codex reasoning effort.');
+  if (typeof fast !== 'boolean') throw new Error('Unsupported Aura Codex Fast setting.');
+  // Explicit default clears a persisted fast tier on resume/fork. Null or an
+  // omitted tier inherits the thread's previous speed in the public protocol.
+  const serviceTier = fast ? 'fast' : 'default';
 
   const child = spawn(cli.command, [...(cli.prefixArgs || []), ...args, 'app-server', '--stdio'], {
     cwd, env, windowsHide: true, detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'],
@@ -351,8 +357,8 @@ export async function runAppServerTurn({
   try {
     await rpc('initialize', { clientInfo: { name: 'codex_aura', title: 'Codex Aura', version: '0.1.5' }, capabilities: { experimentalApi: true } });
     send({ method: 'initialized', params: {} });
-    const settings = { cwd, model, approvalPolicy: 'never', sandbox: policy.sandbox,
-      developerInstructions, config: { model_reasoning_effort: reasoning } };
+    const settings = { cwd, model, serviceTier, approvalPolicy: 'never', sandbox: policy.sandbox,
+      developerInstructions, config: { model_reasoning_effort: reasoning, service_tier: serviceTier, features: { fast_mode: fast } } };
     let migrate = false;
     if (resumeId && migrateLegacy && !ephemeral) {
       const old = await rpc('thread/read', { threadId: resumeId, includeTurns: false });
@@ -383,7 +389,9 @@ export async function runAppServerTurn({
     const sandboxPolicy = policy.sandbox === 'workspace-write'
       ? { type: 'workspaceWrite', writableRoots: [cwd], networkAccess: false, excludeTmpdirEnvVar: true, excludeSlashTmp: true }
       : { type: 'readOnly', networkAccess: false };
-    const started = await rpc('turn/start', { threadId, cwd, model, effort: reasoning,
+    // Repeat selection explicitly so a resumed thread's previous model/effort
+    // cannot override the current Aura turn.
+    const started = await rpc('turn/start', { threadId, cwd, model, effort: reasoning, serviceTier,
       approvalPolicy: 'never', sandboxPolicy, input: [{ type: 'text', text: userText }] });
     turnId = started.turn?.id || turnId;
     if (!UUID.test(turnId || '')) throw new Error('Codex returned an invalid turn ID.');

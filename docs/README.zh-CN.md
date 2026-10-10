@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.en.md) · [首页 / Home](../README.md)
 
-让 Aura 的模型列表可以选择 **Codex**，通过已有 Codex 登录调用 **GPT-6.1-Sol / Ultra**，并在 Codex 中查看真实 Aura 对话。插件还提供 MCP 自检、权限诊断和 Unreal Engine 操作规范。
+让 Aura 的模型列表可以选择 **Codex**，通过已有 Codex 登录调用 **GPT-6.1 Sol 或 GPT-6 Astra**，并在 Codex 中查看真实 Aura 对话。输入框底部可选择模型和思考强度，默认 Sol / Ultra。插件还提供 MCP 自检、权限诊断和 Unreal Engine 操作规范。
 
 ![Codex-Aura 中文架构图](../codex-aura/assets/architecture.zh-CN.svg)
 
@@ -76,7 +76,7 @@ node .\codex-aura\scripts\install.mjs --config .\config.local.json --backup-root
 | `aura_get_blueprint_meta` | 校验参数和对象路径后，读取安全的蓝图结构声明。 |
 | `aura_get_blueprint_graph` | 先校验安全 metadata 的资产类型与路径，再读取节点、引脚和连线。 |
 
-三个技能为 `aura-diagnostics`、`unreal-workflow`、`aura-conversations`。运行时模型固定为 `gpt-6.1-sol`，推理强度固定为 `ultra`；修改配置中的模型字段不会切换模型。Codex CLI 使用自己的已有登录状态，本项目不读取或复制 `auth.json`。
+三个技能为 `aura-diagnostics`、`unreal-workflow`、`aura-conversations`。选择 Codex 后，输入框底部用一个按钮显示模型和思考强度；打开后弹窗相对按钮居中，按钮文字显示 `Select effort`。弹窗中的模型行只提供 GPT-6.1 Sol 和 GPT-6 Astra；紧凑的思考强度滑条提供 Low、Medium、High、Extra High、Ultra 五档，与 Codex 界面刻度对应。拖动时标题、滑块及填充区域实时同步，Ultra 使用紫色渐变。闪电按钮独立切换真正的 Fast 模式，实心图标及底部闪电会反映开启状态，提示显示 `Fast mode` / `More usage`；[官方速度说明](https://learn.chatgpt.com/docs/agent-configuration/speed)没有为 Sol 或 Astra 标注固定速度倍率。选择会在本机保存，并在下一次发送时生效，包括同一对话内切换。重置按钮恢复 Ultra，保留模型及 Fast 选择；旧版界面保存的 Max 值显示为 Ultra，桥接仍兼容显式 `max` 请求。未携带选择的旧请求仍默认 `gpt-6.1-sol` / `ultra`，Fast 关闭；修改插件配置中的模型字段不会覆盖输入框选择。Codex CLI 使用自己的已有登录状态，本项目不读取或复制 `auth.json`。
 
 ## 真实对话与 Project 分类
 

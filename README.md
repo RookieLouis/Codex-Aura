@@ -6,7 +6,7 @@
 
 ## English
 
-Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-6.1-Sol / Ultra**, and saves real conversations through the public Codex app-server protocol. Includes six read-only MCP tools and three skills for diagnostics, Blueprint inspection and Unreal workflows.
+Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-6.1 Sol or GPT-6 Astra**, and saves real conversations through the public Codex app-server protocol. The composer lets you select a model, reasoning effort, and Fast mode for each turn; the default is Sol / Ultra with Fast off. Includes six read-only MCP tools and three skills for diagnostics, Blueprint inspection and Unreal workflows.
 
 ![Codex-Aura architecture](codex-aura/assets/architecture.svg)
 
@@ -60,7 +60,7 @@ npm test
 
 ## 中文说明
 
-让 Aura 的模型菜单选择 **Codex**，使用已有 Codex 登录调用 **GPT-6.1-Sol / Ultra**，并在 Codex 中查看真实对话。提供 MCP 自检、权限诊断、蓝图结构读取和 UE 操作技能。
+让 Aura 的模型菜单选择 **Codex**，使用已有 Codex 登录调用 **GPT-6.1 Sol 或 GPT-6 Astra**，并在 Codex 中查看真实对话。输入框底部可选择模型、思考强度及 Fast 加速，每轮生效；默认 Sol / Ultra，Fast 关闭。提供 MCP 自检、权限诊断、蓝图结构读取和 UE 操作技能。
 
 ![Codex-Aura 中文架构图](codex-aura/assets/architecture.zh-CN.svg)
 
