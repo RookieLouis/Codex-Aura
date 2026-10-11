@@ -10,7 +10,7 @@ Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-
 
 ![Codex-Aura architecture](codex-aura/assets/architecture.svg)
 
-### Latest update · 2026-10-10
+### Model settings
 
 Choose the model, reasoning effort, and Fast mode directly in Aura's composer:
 
@@ -22,19 +22,11 @@ Choose the model, reasoning effort, and Fast mode directly in Aura's composer:
 
 Select **Codex** in Aura's model menu, then click the model / effort button below the message box. Choose a model, drag the effort slider, and use the lightning button to toggle Fast. Selections are saved locally and apply to the next message, including in an existing conversation. Reset restores **Ultra** while keeping the selected model and Fast setting. The Fast tooltip shows `Fast mode` / `More usage`.
 
-The current source passed **all 216 regression tests** on 2026-10-10, including per-turn settings on new and continued conversations, UI state, and installation / restoration. Existing installations can use the [quick-start commands](#quick-start) below to install the new controls, then reload the router and refresh Aura.
-
-### Save fix in 0.1.5
-
-Fixes **“This chat could not be saved”** on a new conversation. A fresh Codex thread may have no persisted rollout before its first turn. The bridge now records the actual thread identity and completes generation before optional Project/workspace/title synchronization. That synchronization shares one five-second deadline, and errors preserve the completed answer. Cloud save receipts must still pass validation before a turn is reported as committed.
-
-The 0.1.5 live verification confirmed both a new conversation and a continuation were saved and could be read back.
-
 ### Requirements
 
 This is an integration patch for an existing **Aura 1.0.6 / DSH router** setup. It requires Windows, Node.js, a signed-in Codex CLI, the Aura Unreal plugin and an existing custom compatible `AuraChatTap.mjs` router. The repository does not include those products or the complete router, and installing DSH-Aura alone does not provide it.
 
-Tested with Node.js 24.14.1. Earlier native-protocol checks used Codex CLI 0.159.2; the 0.1.5 plugin-load and save checks used 0.159.0-alpha.12.1. Installation stops when known patch anchors do not match. See the [full English guide](docs/README.en.md) for compatibility and permission boundaries.
+Tested with Node.js 24.14.1. Installation stops when known patch anchors do not match. See the [full English guide](docs/README.en.md) for compatibility and permission boundaries, and [release notes](docs/RELEASE_NOTES.en.md) for changes and verification records.
 
 ### Quick start
 
@@ -78,7 +70,7 @@ npm test
 
 ![Codex-Aura 中文架构图](codex-aura/assets/architecture.zh-CN.svg)
 
-### 最新更新 · 2026-10-10
+### 模型设置
 
 在 Aura 输入框底部直接选择模型、思考强度和 Fast 模式：
 
@@ -90,19 +82,11 @@ npm test
 
 先在 Aura 模型菜单选择 **Codex**，再点击输入框底部的模型 / 思考强度按钮。弹窗内可切换模型、拖动思考强度滑条、点击闪电切换 Fast。选择保存在本机，并在下一条消息生效；已有对话续聊也能切换。重置按钮只恢复 **Ultra**，保留模型和 Fast 选择。Fast 提示显示 `Fast mode` / `More usage`。
 
-当前源码于 2026-10-10 完成回归，**216 项全部通过**，覆盖新对话及续聊的每轮参数、界面状态和安装 / 恢复。已有安装可重新执行下方[快速开始](#快速开始)中的预览及安装命令，再重新加载路由并刷新 Aura，以安装新增控件。
-
-### 0.1.5 对话保存修复
-
-修复新对话提示 **“This chat could not be saved”** 的问题。新 Codex 线程在首轮生成前可能尚未落盘；现在先保存真实线程标识并完成生成，再关联 Project、同步工作区和标题。可选同步共用 5 秒期限，失败时保留回答。云端保存回执仍必须校验成功，不能把失败当成已保存。
-
-0.1.5 发布时已完成新对话及第二轮续聊的实际保存、读回验证。
-
 ### 安装前提
 
 本项目是现有 **Aura 1.0.6 / DSH 路由的集成补丁**。需要 Windows、Node.js、已登录的 Codex CLI、Aura UE 插件和兼容的 `AuraChatTap.mjs`。仓库不包含这些产品或完整路由。
 
-测试环境为 Node.js 24.14.1；原生协议曾在 Codex CLI 0.159.2 验证，0.1.5 的插件加载和保存验证使用 0.159.0-alpha.12.1。Aura 更新后如补丁位置不匹配，安装器会停止。详细限制及操作边界见[中文说明](docs/README.zh-CN.md)。
+测试环境为 Node.js 24.14.1。补丁位置不匹配时，安装器会停止。详细限制及操作边界见[中文完整说明](docs/README.zh-CN.md)，变更历史与验证结果见[中文更新记录](docs/RELEASE_NOTES.zh-CN.md)。
 
 ### 快速开始
 

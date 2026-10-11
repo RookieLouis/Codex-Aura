@@ -6,7 +6,7 @@ Adds **Codex** to Aura's model picker, uses the existing Codex login with **GPT-
 
 [Chinese installation guide](docs/README.zh-CN.md) · [Release notes: English / 中文](docs/RELEASE_NOTES.md) · [MIT license](LICENSE)
 
-## Latest update · 2026-10-10
+## Model settings
 
 Choose the model, reasoning effort, and Fast mode directly in Aura's composer:
 
@@ -18,13 +18,11 @@ Choose the model, reasoning effort, and Fast mode directly in Aura's composer:
 
 Select **Codex** in Aura's model menu, then click the model / effort button below the message box. Choose a model, drag the effort slider, and use the lightning button to toggle Fast. Selections are saved locally and apply to the next message, including in an existing conversation. Reset restores **Ultra** while keeping the selected model and Fast setting. The Fast tooltip shows `Fast mode` / `More usage`.
 
-The current source passed **all 216 regression tests** on 2026-10-10, including per-turn settings on new and continued conversations, UI state, and installation / restoration. Existing installations can rerun the [installation commands](#installation) below to install the new controls, then reload the router and refresh Aura.
-
 ## Requirements
 
 Windows, Node.js, a signed-in Codex CLI, Aura 1.0.6, its Unreal plugin and an existing compatible `AuraChatTap.mjs` router. This repository supplies an integration patch; it does not ship the full Aura, DSH, Codex or Unreal products, or the router itself.
 
-Tested with Node.js 24.14.1. Earlier native protocol checks used Codex CLI 0.159.2; the 0.1.5 plugin-load and live save checks used 0.159.0-alpha.12.1. Installation stops if known patch anchors do not match.
+Tested with Node.js 24.14.1. Installation stops if known patch anchors do not match. Changes and verification records are listed in the [English release notes](docs/RELEASE_NOTES.en.md).
 
 ## Installation
 
@@ -51,12 +49,6 @@ node .\codex-aura\scripts\install.mjs --config .\config.local.json
 The plugin process must inherit `CODEX_AURA_CONFIG`; alternatively use `%LOCALAPPDATA%\Aura\CodexAura\config.json`. Installer `--config` does not persist environment variables for desktop processes. Keep the returned checkpoint path. Backups default to `%LOCALAPPDATA%\Aura\CodexAura\backups` and can be relocated with `--backup-root`.
 
 Reload the existing router, open a new Codex chat or restart Codex to refresh tools, and refresh Aura's model menu. See the [full English guide](docs/README.en.md) for checkpoint restoration and native Project association.
-
-## Save fix in 0.1.5
-
-A newly started Codex thread may have no persisted rollout before its first turn. The bridge now records the real thread identity, completes generation, then attempts optional Project/workspace/title synchronization within one five-second deadline. Synchronization errors preserve the answer. Cloud save receipts are validated, so failures cannot be reported as committed.
-
-Live verification created a conversation, continued the same native and Aura conversation, and read back all four stored messages. Private verification records are excluded from the public repository.
 
 ## Development and boundaries
 

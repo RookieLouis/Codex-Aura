@@ -1,10 +1,10 @@
 # Codex-Aura
 
-[简体中文](README.zh-CN.md) · **English** · [首页 / Bilingual overview](../README.md)
+[简体中文](README.zh-CN.md) · **English** · [Home](../README.en.md) · [Release notes](RELEASE_NOTES.en.md)
 
 Select **Codex** from Aura's model menu, use your existing Codex sign-in to run **GPT-6.1 Sol or GPT-6 Astra**, and view real Aura conversations in Codex. The composer offers model selection, five reasoning effort levels, and an independent Fast switch; the default is Sol / Ultra / Fast off. The plugin also provides MCP self-checks, permission diagnostics, and an Unreal Engine workflow.
 
-Current version: **0.1.5**. Verified on **Windows, Aura 1.0.6, and Node.js 24.14.1**. Earlier native protocol verification used Codex CLI 0.159.2; plugin loading and the two-turn save verification for 0.1.5 used 0.159.0-alpha.12.1. Other versions may change UI resources or protocols. The installer checks known patch locations and stops if they do not match.
+Current version: **0.1.5**. The verified environment is **Windows, Aura 1.0.6, and Node.js 24.14.1**; verification has used Codex CLI **0.159.2** and **0.159.0-alpha.12.1**. Other versions may change UI resources or protocols. The installer checks known patch locations and stops if they do not match.
 
 ## Features
 
@@ -17,7 +17,7 @@ Current version: **0.1.5**. Verified on **Windows, Aura 1.0.6, and Node.js 24.14
 
 This project is an integration patch for an existing Aura / DSH router. It requires an installed Aura client, a working Aura UE plugin, and an existing customized, compatible `AuraChatTap.mjs` router. The repository does not yet provide a complete router setup for a new machine. Installing DSH-Aura alone does not mean that this router is available. The repository does not include the complete Aura, DSH, or Unreal Engine products, and does not install a UE plugin separately.
 
-Version 0.1.5 fixes the first-turn error “This chat could not be saved.” A new thread may have no persisted rollout before its first generation. The bridge now records the real thread identity and generates the response before synchronizing the Project, workspace, and title. Optional synchronization failures preserve the answer; a cloud save receipt must pass validation before the bridge reports that the conversation was saved. Live verification confirmed successful saves for a new conversation and its second turn, with all four real messages read back. Private conversations, project identifiers, and installation checkpoints are not distributed with the public source.
+Private conversations, project identifiers, and installation checkpoints are not distributed with the public source. See the [release notes](RELEASE_NOTES.en.md) for version changes.
 
 ## Installation
 
@@ -73,7 +73,7 @@ The currently compatible entry points are `.codex-plugin/plugin.json` and `.mcp.
 | Fast | Independent lightning-button switch, off by default. A filled lightning icon indicates it is on; the `More usage` tooltip indicates higher usage. |
 | Reset | Restores only reasoning effort to **Ultra**, preserving the model and Fast setting. |
 
-Selections are saved locally and take effect on the next message. For compatibility, a Max value saved by the previous UI displays as Ultra after upgrading; the bridge still accepts explicit `max` requests. Legacy requests without selections default to Sol / Ultra / Fast off. Plugin configuration model fields do not override composer selections. The Codex CLI uses its existing sign-in state. This project does not read or copy `auth.json`.
+Selections are saved locally and take effect on the next message. A locally saved Max value displays as Ultra; the bridge still accepts explicit `max` requests. Requests without selections default to Sol / Ultra / Fast off. Plugin configuration model fields do not override composer selections. The Codex CLI uses its existing sign-in state. This project does not read or copy `auth.json`.
 
 ### Use the plugin in Codex
 
@@ -145,12 +145,10 @@ Restore verifies the hashes of the currently installed files and backups, and pr
 The code uses built-in Node.js modules and does not require `npm install`. Run the following offline regression tests from the repository root. Tests use isolated fake routers, MCP servers, and app-servers; they do not call a real model or modify UE assets:
 
 ```powershell
-node --test .\codex-model\apply-codex-model.test.cjs .\codex-model\codex-settings-ui.test.cjs .\codex-model\tests\AuraCodexBridge.test.mjs .\codex-model\tests\BlueprintReadProxy.test.mjs .\codex-aura\tests\app-server.test.mjs .\codex-aura\tests\config-diagnostics.test.mjs .\codex-aura\tests\mcp-server.test.mjs .\codex-aura\tests\install.test.mjs .\codex-aura\tests\conversation-project.test.mjs
+npm test
 ```
 
-As of **2026-10-10**, the current `main` passed **216 offline regression tests, with 0 failures**, covering model / reasoning effort / Fast selection and persistence, changes within the same conversation, installation / restore, permission boundaries, Blueprint guards, lazy first-turn persistence, save receipts, native conversations, Project association, synchronization deadlines, exception handling, and cleanup of owned child processes. You can also run `npm test` directly at the repository root and check the repository's CI results.
-
-Historical live verification during the 0.1.5 save fix separately confirmed loading of 3 skills and 6 MCP tools, real saves for a new conversation and its second turn, and sidebar placement. This is recorded separately from offline tests and the promise that pure diagnostics do not start inference.
+See the [release notes](RELEASE_NOTES.en.md) for verification records by version, or check the repository's CI results.
 
 Main directories:
 

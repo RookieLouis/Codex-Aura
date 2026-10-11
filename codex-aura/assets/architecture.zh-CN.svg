@@ -5,7 +5,7 @@
   <rect width="1100" height="540" rx="18" fill="#f4f7f6"/>
   <g font-family="Microsoft YaHei, Noto Sans SC, PingFang SC, Arial, sans-serif" fill="#16352f">
     <text x="40" y="50" font-size="27" font-weight="bold">Codex-Aura：原生对话与按授权范围访问 UE</text>
-    <text x="40" y="82" font-size="17" fill="#50606b">GPT-6.1-Sol / Ultra · 使用已有 Codex 登录 · 本地集成插件</text>
+    <text x="40" y="82" font-size="17" fill="#50606b">GPT-6.1 Sol / GPT-6 Astra · 五档思考强度 · Fast 开关 · 使用已有 Codex 登录</text>
     <g fill="#fff" stroke="#a8bcb7" stroke-width="2">
       <rect x="40" y="128" width="230" height="135" rx="12"/>
       <rect x="320" y="128" width="350" height="135" rx="12"/>

@@ -1,12 +1,12 @@
 # Codex-Aura
 
-**简体中文** · [English](README.en.md) · [首页 / Home](../README.md)
+**简体中文** · [English](README.en.md) · [首页](../README.md) · [更新记录](RELEASE_NOTES.zh-CN.md)
 
 让 Aura 的模型列表可以选择 **Codex**，通过已有 Codex 登录调用 **GPT-6.1 Sol 或 GPT-6 Astra**，并在 Codex 中查看真实 Aura 对话。输入框底部可选择模型、五档思考强度和独立的 Fast 开关，默认 Sol / Ultra / Fast 关闭。插件还提供 MCP 自检、权限诊断和 Unreal Engine 操作规范。
 
 ![Codex-Aura 中文架构图](../codex-aura/assets/architecture.zh-CN.svg)
 
-当前版本：**0.1.5**。已在 **Windows、Aura 1.0.6、Node.js 24.14.1** 上验证。原生协议早期使用 Codex CLI 0.159.2 验证；0.1.5 的插件加载和两轮实际保存验证使用 0.159.0-alpha.12.1。其他版本的界面资源和协议可能变化，安装器会检查已知补丁位置；不匹配时停止，不强行修改。
+当前版本：**0.1.5**。已验证环境为 **Windows、Aura 1.0.6、Node.js 24.14.1**，验证使用过 Codex CLI **0.159.2** 和 **0.159.0-alpha.12.1**。其他版本的界面资源和协议可能变化，安装器会检查已知补丁位置；不匹配时停止，不强行修改。
 
 ## 功能
 
@@ -19,7 +19,7 @@
 
 本项目是对现有 Aura / DSH 路由的集成补丁。使用前需要已安装 Aura、可用的 Aura UE 插件，以及既有定制的兼容 `AuraChatTap.mjs` 路由。仓库尚不提供新机器的完整路由搭建，安装 DSH-Aura 本身也不代表已有这个路由。仓库不包含完整 Aura、DSH 或 Unreal Engine 产品，也不另外安装 UE 插件。
 
-0.1.5 修复了首轮请求提示 “This chat could not be saved” 的问题：新线程可能在首轮生成前没有落盘记录，现在先记录真实线程标识并生成，再做 Project / 工作区 / 标题同步。可选同步失败保留回答；云端保存回执必须通过校验才能报告已保存。实际验证确认新对话和第二轮续聊都保存成功，并读回四条真实消息。私有对话、工程标识和安装检查点不随公开源码分发。
+私有对话、工程标识和安装检查点不随公开源码分发。版本变更见[更新记录](RELEASE_NOTES.zh-CN.md)。
 
 ## 安装
 
@@ -75,7 +75,7 @@ node .\codex-aura\scripts\install.mjs --config .\config.local.json --backup-root
 | Fast | 闪电按钮独立开关，默认关闭；开启后显示实心闪电，提示中的 `More usage` 表示更多用量。 |
 | Reset | 只将思考强度恢复为 **Ultra**，保留当前模型和 Fast 设置。 |
 
-选择会在本机保存，并在下一次发送时生效。兼容旧版界面保存的 Max：升级后显示为 Ultra；桥接仍接受显式 `max` 请求。旧请求没有携带选择时，默认使用 Sol / Ultra / Fast 关闭。插件配置中的模型字段不会覆盖输入框选择。Codex CLI 使用自己的已有登录状态，本项目不读取或复制 `auth.json`。
+选择会在本机保存，并在下一次发送时生效。本机保存的 Max 显示为 Ultra，桥接仍接受显式 `max` 请求。未携带选择的请求默认使用 Sol / Ultra / Fast 关闭。插件配置中的模型字段不会覆盖输入框选择。Codex CLI 使用自己的已有登录状态，本项目不读取或复制 `auth.json`。
 
 ### 在 Codex 中使用插件
 
@@ -147,12 +147,10 @@ node .\codex-aura\scripts\install.mjs --restore 'C:\Backups\Codex-Aura\Codex-Aur
 代码使用 Node.js 内置模块，不需要 `npm install`。在仓库根目录运行以下离线回归测试；测试使用隔离的假路由、MCP 和 app-server，不调用真实模型或修改 UE 资产：
 
 ```powershell
-node --test .\codex-model\apply-codex-model.test.cjs .\codex-model\codex-settings-ui.test.cjs .\codex-model\tests\AuraCodexBridge.test.mjs .\codex-model\tests\BlueprintReadProxy.test.mjs .\codex-aura\tests\app-server.test.mjs .\codex-aura\tests\config-diagnostics.test.mjs .\codex-aura\tests\mcp-server.test.mjs .\codex-aura\tests\install.test.mjs .\codex-aura\tests\conversation-project.test.mjs
+npm test
 ```
 
-截至 **2026-10-10**，当前 `main` 离线回归测试 **216 项通过、0 项失败**，覆盖模型 / 思考强度 / Fast 选择与持久化、同一对话内切换、安装 / 恢复、权限边界、蓝图 guard、首轮懒落盘、保存回执、原生对话、Project 关联、同步期限、异常处理和拥有的子进程清理。也可以在仓库根目录直接运行 `npm test`，查看仓库 CI 验证结果。
-
-0.1.5 保存修复阶段的历史实时验证另行确认了 3 个技能和 6 个 MCP 工具加载，以及新对话和第二轮续聊的真实保存及归属；它与离线测试、纯诊断“不启动推理”的承诺分开记录。
+具体版本的验证记录见[更新记录](RELEASE_NOTES.zh-CN.md)，也可查看仓库 CI 验证结果。
 
 主要目录：
 
